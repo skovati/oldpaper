@@ -1,5 +1,6 @@
 CREATE TABLE account (
     id INT GENERATED ALWAYS AS IDENTITY,
+    name TEXT,
     email TEXT,
     password TEXT
 );

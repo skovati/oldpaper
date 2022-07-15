@@ -2,9 +2,20 @@ version: '3.1'
 
 services:
 
+  app:
+    container_name: oldpaper
+    build: .
+    environment:
+      - POSTGRES_DB=oldpaper
+      - POSTGRES_USER=oldpaper
+      - POSTGRES_PASSWORD=oldpaper
+      - POSTGRES_IP=db
+    depends_on:
+      db:
+        condition: service_healthy
   db:
     container_name: pgsql
-    image: postgres:alpine
+    image: docker.io/postgres:alpine
     restart: always
     ports:
      - 15432:5432
@@ -12,9 +23,15 @@ services:
       - oldpaper_db:/var/lib/postgresql/data
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
-      POSTGRES_DB: oldpaper
-      POSTGRES_USER: oldpaper
-      POSTGRES_PASSWORD: password
+      - POSTGRES_DB=oldpaper
+      - POSTGRES_USER=oldpaper
+      - POSTGRES_PASSWORD=oldpaper
+    healthcheck:
+      test: ["CMD", "pg_isready -u oldpaper oldpaper"]
+      interval: 5s
+      timeout: 60s
+      retries: 10
+      start_period: 10s
 
 volumes:
     oldpaper_db:
