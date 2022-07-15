@@ -10,6 +10,7 @@ services:
      - 15432:5432
     volumes:
       - oldpaper_db:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
       POSTGRES_DB: oldpaper
       POSTGRES_USER: oldpaper
@@ -17,4 +18,4 @@ services:
 
 volumes:
     oldpaper_db:
-        external: false
+      external: false
