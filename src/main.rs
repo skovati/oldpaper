@@ -1,14 +1,16 @@
 use std::env;
 use std::error::Error;
 
-use sqlx::postgres::{PgPoolOptions, PgRow};
-use sqlx::{query, Row};
+use sqlx::Pool;
+use sqlx::{postgres::PgPoolOptions, Postgres};
+use tokio::signal::unix;
 use warp::Filter;
 
-struct Account {
-    name: String,
-    email: String,
-    password: String,
+mod handlers;
+mod models;
+
+fn with_db(db: Pool<Postgres>) -> impl Filter<Extract=(Pool<Postgres>, ), Error=std::convert::Infallible> + Clone {
+    warp::any().map(move || db.clone())
 }
 
 #[tokio::main]
@@ -18,26 +20,30 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let user = env::var("POSTGRES_USER")?;
     let pw = env::var("POSTGRES_PASSWORD")?;
     let addr = format!("postgres://{}:{}@{}/{}", user, pw, db_ip, db_name);
-    println!("{}", addr);
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&addr)
         .await?;
 
-    let _rows = query(
-        "INSERT INTO account
-        (name, email, password)
-        VALUES ('Luke', 'mail@skovati.dev', 'secure_hash');",
-    )
-    .execute(&pool)
-    .await?;
+    let query = warp::get()
+        .and(warp::path("query"))
+        .and(with_db(pool.clone()))
+        .and_then(handlers::query_db);
 
-    let tmp = query("SELECT * from account;").fetch_all(&pool).await?;
+    println!("Warp server starting...");
 
-    let res = tmp.get(0).unwrap();
+    // wrap warp server in tokio signal processor, so we actually respond to SIGTERM
+    let (_addr, fut) = warp::serve(query)
+        .bind_with_graceful_shutdown(([0, 0, 0, 0], 8080), async move {
+            unix::signal(unix::SignalKind::terminate()).unwrap().recv()
+                .await
+                .expect("failed to listen to shutdown signal");
+        });
 
-    println!("{}", res.get::<String, _>(0));
+    fut.await;
+
+    println!("Warp server shutting down");
 
     return Ok(());
 }

@@ -5,6 +5,8 @@ services:
   app:
     container_name: oldpaper
     build: .
+    ports:
+      - 8080:8080
     environment:
       - POSTGRES_DB=oldpaper
       - POSTGRES_USER=oldpaper
@@ -21,7 +23,7 @@ services:
      - 15432:5432
     volumes:
       - oldpaper_db:/var/lib/postgresql/data
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./sql:/docker-entrypoint-initdb.d/
     environment:
       - POSTGRES_DB=oldpaper
       - POSTGRES_USER=oldpaper

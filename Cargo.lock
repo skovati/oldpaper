@@ -684,6 +684,7 @@ name = "oldpaper"
 version = "0.1.0"
 dependencies = [
  "reqwest",
+ "serde",
  "sqlx",
  "tokio",
  "warp",
