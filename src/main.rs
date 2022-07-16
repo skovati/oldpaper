@@ -4,7 +4,7 @@ use std::error::Error;
 use sqlx::postgres::PgPoolOptions;
 use tokio::signal::unix;
 
-mod api;
+mod routes;
 mod handlers;
 mod models;
 
@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Warp server starting...");
 
-    let routes = api::get_api_routes(pool.clone());
+    let routes = routes::get_api_routes(pool.clone());
 
     // wrap warp server in tokio signal processor, so we actually respond to SIGTERM
     let (_addr, fut) =
