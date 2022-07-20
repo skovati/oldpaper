@@ -1,19 +1,19 @@
-CREATE TABLE IF NOT EXISTS account (
-    id INT GENERATED ALWAYS AS IDENTITY,
-    name TEXT,
-    email TEXT,
-    password TEXT,
-    PRIMARY KEY (id)
+create table if not exists account (
+    id int generated always as identity,
+    name text,
+    email text,
+    password text,
+    primary key (id)
 );
 
-CREATE TABLE IF NOT EXISTS feed (
-    id INT GENERATED ALWAYS AS IDENTITY,
-    url TEXT,
-    account_id INT,
-    PRIMARY KEY (id),
+create table if not exists feed (
+    id int generated always as identity,
+    url text,
+    account_id int,
+    primary key (id),
 
-    CONSTRAINT fk_feed_belongs_to_account
-        FOREIGN KEY (account_id)
-        REFERENCES account (id)
-        ON DELETE CASCADE
+    constraint fk_feed_belongs_to_account
+        foreign key (account_id)
+        references account (id)
+        on delete cascade
 );

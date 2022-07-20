@@ -1,47 +1,39 @@
-use std::env;
-use std::error::Error;
+use async_graphql::{
+    http::{playground_source, GraphQLPlaygroundConfig},
+    EmptyMutation, EmptySubscription, Request, Response, Schema,
+};
+use axum::{
+    extract::Extension,
+    response::{Html, IntoResponse},
+    routing::get,
+    Json, Router,
+};
+mod model;
+use crate::model::QueryRoot;
 
-use sqlx::postgres::PgPoolOptions;
-use tokio::signal::unix;
+async fn graphql_handler(
+    schema: Extension<Schema<QueryRoot, EmptyMutation, EmptySubscription>>,
+    req: Json<Request>) -> Json<Response> {
+    schema.execute(req.0).await.into()
+}
 
-mod routes;
-mod handlers;
-mod models;
+async fn graphql_playground() -> impl IntoResponse {
+    Html(playground_source(GraphQLPlaygroundConfig::new("/")))
+}
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    let db_name = env::var("POSTGRES_DB")?;
-    let db_ip = env::var("POSTGRES_IP")?;
-    let user = env::var("POSTGRES_USER")?;
-    let pw = env::var("POSTGRES_PASSWORD")?;
-    let addr = format!("postgres://{}:{}@{}/{}", user, pw, db_ip, db_name);
+async fn main() {
+    let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
+        .finish();
 
-    println!("connecting to postgres DB: {}", addr);
+    let app = Router::new()
+        .route("/", get(graphql_playground).post(graphql_handler))
+        .layer(Extension(schema));
 
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&addr)
-        .await?;
+    println!("Playground: http://localhost:3000");
 
-    println!("connected to database!");
-
-    println!("Warp server starting...");
-
-    let routes = routes::get_api_routes(pool.clone());
-
-    // wrap warp server in tokio signal processor, so we actually respond to SIGTERM
-    let (_addr, fut) =
-        warp::serve(routes).bind_with_graceful_shutdown(([0, 0, 0, 0], 8080), async move {
-            unix::signal(unix::SignalKind::terminate())
-                .unwrap()
-                .recv()
-                .await
-                .expect("failed to listen to shutdown signal");
-        });
-
-    fut.await;
-
-    println!("Warp server shutting down");
-
-    return Ok(());
+    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 }

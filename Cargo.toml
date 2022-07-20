@@ -1,11 +1,10 @@
 [package]
 name = "oldpaper"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-tokio = { version = "1", features = ["full"] }
-sqlx = { version = "0.5", features = [ "runtime-tokio-rustls", "postgres" ] }
-reqwest = { version = "0.11", default-features = false, features = ["json", "rustls"] }
-warp = { version = "0.3" }
-serde = { version = "1.0", features = ["derive"] }
+async-graphql = "4.0"
+axum = "0.5"
+slab = "0.4"
+tokio = { version = "1.0", features = ["full"] }
