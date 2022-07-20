@@ -1,38 +1,33 @@
 use async_graphql::{
-    http::{playground_source, GraphQLPlaygroundConfig},
-    EmptyMutation, EmptySubscription, Request, Response, Schema,
+    EmptySubscription, Schema,
 };
 use axum::{
     extract::Extension,
-    response::{Html, IntoResponse},
-    routing::get,
-    Json, Router,
+    routing::get, Router,
 };
+
 mod model;
-use crate::model::QueryRoot;
+mod handler;
+use crate::model::{QueryRoot, MutationRoot, Storage};
 
-async fn graphql_handler(
-    schema: Extension<Schema<QueryRoot, EmptyMutation, EmptySubscription>>,
-    req: Json<Request>) -> Json<Response> {
-    schema.execute(req.0).await.into()
-}
-
-async fn graphql_playground() -> impl IntoResponse {
-    Html(playground_source(GraphQLPlaygroundConfig::new("/")))
-}
 
 #[tokio::main]
 async fn main() {
-    let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
+    let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
+        .data(Storage::default())
         .finish();
 
     let app = Router::new()
-        .route("/", get(graphql_playground).post(graphql_handler))
+        .route("/gql",
+            get(handler::graphql_playground)
+            .post(handler::graphql_handler))
+        .route("/health", get(handler::health))
+        .route("/", get(handler::index))
         .layer(Extension(schema));
 
-    println!("Playground: http://localhost:3000");
+    println!("serving playground @ http://localhost:8080/gql");
 
-    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+    axum::Server::bind(&"0.0.0.0:8080".parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();
