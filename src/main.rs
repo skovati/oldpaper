@@ -5,16 +5,25 @@ use axum::{
     extract::Extension,
     routing::get, Router,
 };
+use sqlx::postgres::PgPoolOptions;
 
 mod model;
 mod handler;
-use crate::model::{QueryRoot, MutationRoot, Storage};
-
+use crate::model::{Query, Mutation};
 
 #[tokio::main]
 async fn main() {
-    let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
-        .data(Storage::default())
+    let db_connection_str = std::env::var("DATABASE_URL")
+        .unwrap_or("oldpaper://oldpaper:oldpaper@127.0.0.1:15432".to_string());
+
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&db_connection_str)
+        .await
+        .expect("can't connect to database");
+
+    let schema = Schema::build(Query, Mutation, EmptySubscription)
+        .data(pool)
         .finish();
 
     let app = Router::new()

@@ -1,4 +1,4 @@
-create table if not exists account (
+create table if not exists "user" (
     id int generated always as identity,
     name text,
     email text,
@@ -8,12 +8,12 @@ create table if not exists account (
 
 create table if not exists feed (
     id int generated always as identity,
+    user_id int,
     url text,
-    account_id int,
     primary key (id),
 
     constraint fk_feed_belongs_to_account
-        foreign key (account_id)
-        references account (id)
+        foreign key (user_id)
+        references "user" (id)
         on delete cascade
 );
